@@ -5,38 +5,37 @@ const User = require('../models/User');
 const Message = require('../models/Message');
 const auth = require('../middleware/auth');
 
-// Get all matches for a user
-router.get('/', auth, async (req, res) => {
+// Get potential matches - Exclude only matched/liked users
+router.get('/potential-matches', auth, async (req, res) => {
   try {
-    // Find all matches where the current user is included
+    const currentUser = await User.findById(req.userId);
+    if (!currentUser) return res.status(404).json('User not found');
+    
+    // Get all matches (both one-sided and mutual) involving the current user
     const matches = await Match.find({
       users: req.userId
     });
     
-    // Get details for each match with the partner's information
-    const matchesWithDetails = await Promise.all(
-      matches.map(async (match) => {
-        // Find the other user in the match
-        const partnerId = match.users.find(id => id.toString() !== req.userId);
-        const partner = await User.findById(partnerId).select('-password');
-        
-        // Get the last message if any
-        const lastMessage = await Message.findOne({ chatId: match._id })
-          .sort({ createdAt: -1 })
-          .limit(1);
-        
-        return {
-          _id: match._id,
-          createdAt: match.createdAt,
-          partner: partner,
-          lastMessage: lastMessage
-        };
-      })
+    // Extract user IDs from matches to exclude them
+    const matchedUserIds = matches.map(match => 
+      match.users.find(id => id.toString() !== req.userId)
     );
     
-    res.status(200).json(matchesWithDetails);
+    // Exclude current user and matched/liked users
+    const excludedUserIds = [
+      req.userId,
+      ...matchedUserIds
+    ];
+    
+    // Find all users except excluded ones
+    const potentialMatches = await User.find({
+      _id: { $nin: excludedUserIds }
+    }).select('-password');
+    
+    res.status(200).json(potentialMatches);
   } catch (error) {
-    res.status(500).json(error);
+    console.error('Error in potential-matches:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

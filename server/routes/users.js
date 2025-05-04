@@ -4,7 +4,7 @@ const User = require('../models/User');
 const Match = require('../models/Match');
 const auth = require('../middleware/auth');
 
-// Get potential matches - Updated to show all users without match restrictions
+// Get potential matches - Shows all users except current user
 router.get('/potential-matches', auth, async (req, res) => {
   try {
     const currentUser = await User.findById(req.userId);
