@@ -18,6 +18,14 @@ const UserSchema = new mongoose.Schema({
     ageRange: { min: Number, max: Number },
     distance: Number
   },
+  // Add push subscription field
+  pushSubscription: {
+    endpoint: String,
+    keys: {
+      p256dh: String,
+      auth: String
+    }
+  },
   createdAt: { type: Date, default: Date.now }
 });
 
