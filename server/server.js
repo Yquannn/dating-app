@@ -5,7 +5,12 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
+
+
+// server.js
 const app = express();
+app.use(express.json()); // This should be present
+
 const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
@@ -15,8 +20,29 @@ const io = socketIO(server, {
 });
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+// server.js
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://dating-app-frontend-delta.vercel.app/', // Add your Vercel URL
+  // Add any other domains you'll use
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
+
+
+
+
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
