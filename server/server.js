@@ -5,7 +5,10 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
+// server.js
 const app = express();
+app.use(express.json()); // This should be present
+
 const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
@@ -15,12 +18,36 @@ const io = socketIO(server, {
 });
 
 // Middleware
+// server.js
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'https://dating-app-frontend-delta.vercel.app/' // Remove trailing slash
+];
+
+// REMOVE THIS - You have duplicate CORS configurations
+// app.use(cors({ ... }));
+
+// Use only ONE CORS configuration
 app.use(cors({
-    origin: ["http://localhost:3000", "https://https://dating-app-backend-hpju.onrender.com"],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true
-  }));
-app.use(express.json());
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('Blocked origin:', origin); // Debug log
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
+
+// REMOVE THIS DUPLICATE CORS CONFIGURATION
+// app.use(cors({
+//   origin: ['http://localhost:3000', 'http://localhost:3001'],
+//   credentials: true
+// }));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
