@@ -23,13 +23,9 @@ const io = socketIO(server, {
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
-  'https://dating-app-frontend-delta.vercel.app/' // Remove trailing slash
+  'https://dating-app-frontend-j197.vercel.app', // Remove the trailing slash
 ];
 
-// REMOVE THIS - You have duplicate CORS configurations
-// app.use(cors({ ... }));
-
-// Use only ONE CORS configuration
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
