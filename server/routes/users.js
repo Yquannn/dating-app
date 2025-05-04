@@ -1,10 +1,170 @@
+// // routes/users.js
+// const router = require('express').Router();
+// const User = require('../models/User');
+// const auth = require('../middleware/auth');
+// const mongoose = require('mongoose');
+
+// // Get single user by ID
+// router.get('/:id', auth, async (req, res) => {
+//   try {
+//     // Validate ObjectId format
+//     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+//       return res.status(400).json('Invalid user ID format');
+//     }
+    
+//     const user = await User.findById(req.params.id).select('-password');
+//     if (!user) return res.status(404).json('User not found');
+//     res.status(200).json(user);
+//   } catch (error) {
+//     console.error('Error getting user:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+// // Update user information
+// router.put('/:id', auth, async (req, res) => {
+//   if (req.userId !== req.params.id) {
+//     return res.status(403).json('You can only update your own profile');
+//   }
+
+//   try {
+//     const { password, ...updateData } = req.body;
+    
+//     if (password) {
+//       return res.status(400).json('Password updates should be done through a separate route');
+//     }
+
+//     const updatedUser = await User.findByIdAndUpdate(
+//       req.params.id,
+//       { ...updateData },
+//       { new: true, runValidators: true }
+//     ).select('-password');
+
+//     if (!updatedUser) return res.status(404).json('User not found');
+    
+//     res.status(200).json(updatedUser);
+//   } catch (error) {
+//     console.error('Error updating user:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+// // Update user location
+// router.put('/:id/location', auth, async (req, res) => {
+//   if (req.userId !== req.params.id) {
+//     return res.status(403).json('You can only update your own location');
+//   }
+
+//   try {
+//     const { longitude, latitude } = req.body;
+    
+//     if (!longitude || !latitude) {
+//       return res.status(400).json('Longitude and latitude are required');
+//     }
+
+//     const updatedUser = await User.findByIdAndUpdate(
+//       req.params.id,
+//       { 'location.coordinates': [longitude, latitude] },
+//       { new: true, runValidators: true }
+//     ).select('-password');
+
+//     if (!updatedUser) return res.status(404).json('User not found');
+    
+//     res.status(200).json(updatedUser);
+//   } catch (error) {
+//     console.error('Error updating user location:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+// // Update user preferences
+// router.put('/:id/preferences', auth, async (req, res) => {
+//   if (req.userId !== req.params.id) {
+//     return res.status(403).json('You can only update your own preferences');
+//   }
+
+//   try {
+//     const { ageRange, distance } = req.body;
+    
+//     const updateData = {};
+//     if (ageRange) updateData['preferences.ageRange'] = ageRange;
+//     if (distance) updateData['preferences.distance'] = distance;
+
+//     const updatedUser = await User.findByIdAndUpdate(
+//       req.params.id,
+//       updateData,
+//       { new: true, runValidators: true }
+//     ).select('-password');
+
+//     if (!updatedUser) return res.status(404).json('User not found');
+    
+//     res.status(200).json(updatedUser);
+//   } catch (error) {
+//     console.error('Error updating user preferences:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+// // Add photo to user profile
+// router.post('/:id/photos', auth, async (req, res) => {
+//   if (req.userId !== req.params.id) {
+//     return res.status(403).json('You can only update your own photos');
+//   }
+
+//   try {
+//     const { photoUrl } = req.body;
+    
+//     if (!photoUrl) {
+//       return res.status(400).json('Photo URL is required');
+//     }
+
+//     const updatedUser = await User.findByIdAndUpdate(
+//       req.params.id,
+//       { $push: { photos: photoUrl } },
+//       { new: true, runValidators: true }
+//     ).select('-password');
+
+//     if (!updatedUser) return res.status(404).json('User not found');
+    
+//     res.status(200).json(updatedUser);
+//   } catch (error) {
+//     console.error('Error adding photo:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+// // Remove photo from user profile
+// router.delete('/:id/photos/:photoIndex', auth, async (req, res) => {
+//   if (req.userId !== req.params.id) {
+//     return res.status(403).json('You can only update your own photos');
+//   }
+
+//   try {
+//     const photoIndex = parseInt(req.params.photoIndex);
+    
+//     const user = await User.findById(req.params.id);
+//     if (!user) return res.status(404).json('User not found');
+    
+//     user.photos.splice(photoIndex, 1);
+//     await user.save();
+    
+//     res.status(200).json(user);
+//   } catch (error) {
+//     console.error('Error removing photo:', error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+// module.exports = router;
+
+// routes/users.js
 // routes/users.js
 const router = require('express').Router();
 const User = require('../models/User');
 const Match = require('../models/Match');
 const auth = require('../middleware/auth');
 
-// Get potential matches - Shows all users except current user
+// Get potential matches - Updated to show all users without match restrictions
 router.get('/potential-matches', auth, async (req, res) => {
   try {
     const currentUser = await User.findById(req.userId);
@@ -251,20 +411,44 @@ router.post('/like/:id', auth, async (req, res) => {
   }
 });
 
-// Add endpoint to get mutual matches
-router.get('/matches', auth, async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
+    // Find all matches where the current user is included
     const matches = await Match.find({
       users: req.userId,
       isMatched: true
-    }).populate('users', '-password');
+    });
     
-    res.status(200).json(matches);
+    // Get details for each match with the partner's information
+    const matchesWithDetails = await Promise.all(
+      matches.map(async (match) => {
+        // Find the other user in the match
+        const partnerId = match.users.find(id => id.toString() !== req.userId);
+        const partner = await User.findById(partnerId).select('-password');
+        
+        // Get the last message if any
+        const lastMessage = await Message.findOne({ chatId: match._id })
+          .sort({ createdAt: -1 })
+          .limit(1);
+        
+        return {
+          _id: match._id,
+          createdAt: match.createdAt,
+          isMatched: match.isMatched,
+          partner: partner,
+          lastMessage: lastMessage
+        };
+      })
+    );
+    
+    res.status(200).json(matchesWithDetails);
   } catch (error) {
     console.error('Error getting matches:', error);
     res.status(500).json({ error: error.message });
   }
 });
+
+
 
 // Add endpoint to get pending likes (users who liked you)
 router.get('/liked-by', auth, async (req, res) => {

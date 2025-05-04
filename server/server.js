@@ -23,7 +23,7 @@ const io = socketIO(server, {
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
-  'https://dating-app-frontend-j197.vercel.app', // Remove the trailing slash
+  'https://dating-app-frontend-j197.vercel.app',
 ];
 
 app.use(cors({
